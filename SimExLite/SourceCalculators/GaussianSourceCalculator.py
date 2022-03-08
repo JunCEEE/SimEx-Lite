@@ -9,7 +9,7 @@ from pint import Quantity, Unit
 import imp
 
 from libpyvinyl import BaseCalculator, CalculatorParameters
-from SimExLite.WavefrontData import WavefrontData
+from SimExLite.WavefrontData import WavefrontData, WPGFormat
 
 # WPG is neccessary to execute the calculator, but it's not a hard dependency of SimExLite.
 try:
@@ -189,7 +189,7 @@ class GaussianSourceCalculator(BaseCalculator):
         wavefront = Wavefront(srwl_wf)
         wavefront.store_hdf5(filename)
 
-        output_data.set_file(filename, WavefrontData)
+        output_data.set_file(filename, WPGFormat)
 
         return self.output
 

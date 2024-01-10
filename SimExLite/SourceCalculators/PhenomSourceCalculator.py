@@ -1,9 +1,7 @@
 """:module PhenomCalculator: Module that holds the PhenomCalculator class.  """
-
 import h5py
 import numpy as np
-from pathlib import Path
-
+from SimExLite.utils.Logger import setLogger
 from SimExLite.WavefrontData import WavefrontData, WPGFormat
 from SimExLite.utils.Logger import setLogger
 from libpyvinyl import BaseCalculator, CalculatorParameters
@@ -18,14 +16,13 @@ except ModuleNotFoundError:
 
 # WPG is necessary to execute the calculator, but it's not a hard dependency of SimExLite.
 try:
-    from wpg.srw import srwlpy
-    from wpg import Wavefront
     from phenom.wpg import complex_to_wpg
+    from wpg import Wavefront
+    from wpg.srw import srwlpy
 
     WPG_AVAILABLE = True
 except ModuleNotFoundError:
     WPG_AVAILABLE = False
-
 
 logger = setLogger("PhenomSourceCalculator")
 

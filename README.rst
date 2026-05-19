@@ -61,7 +61,8 @@ Tests
 
 .. code-block:: bash
 
-    $ pytest .
+    $ git clone https://github.com/PaNOSC-ViNYL/SimEx-Lite-testFiles testFiles
+    $ pytest tests
 
 
 Features

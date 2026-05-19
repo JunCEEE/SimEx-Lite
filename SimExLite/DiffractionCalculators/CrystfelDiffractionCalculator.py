@@ -6,10 +6,12 @@
 from pathlib import Path
 from subprocess import Popen, PIPE
 import os
+import sys
 import numpy as np
 from numpy.random import randint
 import h5py
-import pkg_resources
+from contextlib import contextmanager
+from importlib.resources import files
 from tqdm.autonotebook import tqdm
 from cfelpyutils.geometry import load_crystfel_geometry
 from libpyvinyl.BaseCalculator import BaseCalculator, CalculatorParameters
@@ -22,6 +24,22 @@ from SimExLite.utils.io import replace_after_substring_in_file
 from .convert_sim_to_CXI import convert_to_CXI
 
 logger = setLogger("CrystfelDiffractionCalculator")
+
+
+@contextmanager
+def _get_resource_path(package, resource):
+    """Get a filesystem path to a package resource.
+    
+    Works with Python 3.9+ using importlib.resources.
+    For Python 3.12+, resources may be in zip files, so we use as_file()
+    to ensure a real filesystem path.
+    """
+    ref = files(package).joinpath(resource)
+    if sys.version_info >= (3, 9) and hasattr(ref, 'as_file'):
+        with ref.as_file() as path:
+            yield str(path)
+    else:
+        yield str(ref)
 
 
 class CrystfelDiffractionCalculator(BaseCalculator):
@@ -266,28 +284,28 @@ class CrystfelDiffractionCalculator(BaseCalculator):
             # raise RuntimeError(err.decode("ascii"))
 
         # Save in CXI format
-        vds_ref_geom = pkg_resources.resource_filename(
+        with _get_resource_path(
             "SimExLite.DiffractionCalculators.convert_to_cxi_geoms",
             "agipd_2120_vds.geom",
-        )
-        # This is needed to convert the CXI script, not relevent to the geom used for crystfel simulation.
-        sim_geom = pkg_resources.resource_filename(
-            "SimExLite.DiffractionCalculators.convert_to_cxi_geoms",
-            "detector_sim.geom",
-        )
-        # print(vds_ref_geom)
-        # print(sim_geom)
-        if is_convert_to_cxi:
-            logger.info(f'Writting in CXI format to "{output_fn}" ...')
-            convert_to_CXI(
-                sim_geom,
-                vds_ref_geom,
-                str(tmp_dir_path),
-                output_fn,
-                f"{fn_prefix}.(\\d+).h5",
-                noise_base,
-                noise_std,
-            )
+        ) as vds_ref_geom:
+            # This is needed to convert the CXI script, not relevent to the geom used for crystfel simulation.
+            with _get_resource_path(
+                "SimExLite.DiffractionCalculators.convert_to_cxi_geoms",
+                "detector_sim.geom",
+            ) as sim_geom:
+                # print(vds_ref_geom)
+                # print(sim_geom)
+                if is_convert_to_cxi:
+                    logger.info(f'Writting in CXI format to "{output_fn}" ...')
+                    convert_to_CXI(
+                        sim_geom,
+                        vds_ref_geom,
+                        str(tmp_dir_path),
+                        output_fn,
+                        f"{fn_prefix}.(\\d+).h5",
+                        noise_base,
+                        noise_std,
+                    )
         assert len(self.output_keys) == 1
         key = self.output_keys[0]
         output_data = self.output[key]
@@ -325,8 +343,8 @@ class CrystfelDiffractionCalculator(BaseCalculator):
         """Get the geometry file for crystfel simulation."""
         if self.parameters["geometry_fn"].value is None:
             # geom_path = Path(diffcalc.__file__).with_name("agipd_simple_2d.geom")
-            geom_path = pkg_resources.resource_filename(
-                "SimExLite.DiffractionCalculators", "agipd_simple_2d.geom"
+            geom_path = str(
+                files("SimExLite.DiffractionCalculators").joinpath("agipd_simple_2d.geom")
             )
         else:
             geom_path = self.parameters["geometry_fn"].value
